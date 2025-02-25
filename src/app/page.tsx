@@ -1,101 +1,141 @@
-import Image from "next/image";
+"use client"
+
+import React, { useState, useEffect } from 'react';
+import { IoIosSearch } from "react-icons/io";
+import { toast } from "sonner";
+import axios from 'axios';
+import { useRouter } from 'next/navigation';
+import { useResultsFound } from "@/hooks/resultsContext";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [selectedCuisine, setSelectedCuisine] = useState("Greek");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [buttonNextEnabled, setButtonNextEnabled] = useState(false);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+  const [titleValue, setTitleValue] = useState('');
+  const [maxPrepTime, setMaxPrepTime] = useState('');
+
+  const cuisines = ["Greek", "German", "American"];
+
+  const router = useRouter();
+  const { setResults } = useResultsFound();
+
+  useEffect(() => {
+    if (titleValue.trim() !== '' && maxPrepTime.trim() !== '') {
+      setButtonNextEnabled(true);
+    } else {
+      setButtonNextEnabled(false);
+    }
+  }, [titleValue, maxPrepTime]);
+
+  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    const maxPreparationTime = Number(maxPrepTime);
+    const APIKEY = process.env.NEXT_PUBLIC_SPOONACULAR_API_KEY;
+
+    if (!titleValue) {
+      toast.warning('No title used');
+      return;
+    }
+
+    if (maxPreparationTime && (maxPreparationTime > 900 || maxPreparationTime < 1)) {
+      toast.warning('Please use correct max preparation time (> 0 and < 900)');
+      return;
+    }
+
+    if (!APIKEY) {
+      toast.warning('No api key used');
+      return;
+    }
+
+    try {
+      const responseLink = `https://api.spoonacular.com/recipes/complexSearch?query=${titleValue}&cuisine=${selectedCuisine}&maxReadyTime=${maxPreparationTime}&apiKey=${APIKEY}`;
+      console.log(responseLink, 'responseLink');
+      const response = await axios.get(responseLink);
+      if (response.status === 200) {
+        const result = response.data;
+        if (result.results && result.results.length > 0) {
+          setResults(result.results);
+          router.push('/results');
+        } else {
+          toast.warning('Nothing found using these parameters');
+        }
+      }
+    } catch (error) {
+      console.log('Error occured trying to search', error);
+      toast.error('Error trying to search');
+    }
+  };
+
+  return (
+    <div className="w-full h-full flex flex-col items-center bg-gray-950 min-h-screen">
+      <div className="w-1/2 h-full flex flex-col items-center justify-center">
+        <h1 className="text-gray-200 text-7xl text-center">Recipe finder</h1>
+        <div className="input-group w-full mt-4">
+          <form onSubmit={onSubmit} className="flex justify-center">
+            <input
+              type="text"
+              name="title"
+              placeholder="Enter recipe title"
+              value={titleValue}
+              onChange={(e) => setTitleValue(e.target.value)}
+              className="h-9 bg-gray-900 outline-none caret-white pl-2 text-gray-200 text-xl rounded-l-lg"
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            <div className="relative">
+              <button
+                type="button"
+                className="h-9 px-4 bg-gray-800 text-gray-200 text-xl flex items-center"
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+              >
+                {selectedCuisine}
+                <svg
+                  className="w-4 h-4 ml-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </button>
+              {dropdownOpen && (
+                <div className="absolute right-0 mt-1 w-full bg-gray-800 text-gray-200 rounded-md shadow-lg z-10 transition-all duration-300">
+                  {cuisines.map((cuisine) => (
+                    <div
+                      key={cuisine}
+                      className="cursor-pointer px-4 py-2 hover:bg-gray-700"
+                      onClick={() => {
+                        setSelectedCuisine(cuisine);
+                        setDropdownOpen(false);
+                      }}
+                    >
+                      {cuisine}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <input
+              type="number"
+              name="maxpreptime"
+              min={1}
+              max={900}
+              placeholder="Prep Time"
+              value={maxPrepTime}
+              onChange={(e) => setMaxPrepTime(e.target.value)}
+              className="w-12 h-9 p-1 outline-none bg-gray-400"
+            />
+            <button
+              type={buttonNextEnabled ? "submit" : "button"}
+              disabled={!buttonNextEnabled}
+              className={`h-9 p-1 rounded-r-lg bg-gray-600 transition-all flex items-center justify-center ${buttonNextEnabled ? 'hover:bg-gray-500' : ''}`}
+            >
+              <IoIosSearch size={24} className="text-gray-200" />
+            </button>
+          </form>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
     </div>
   );
 }
