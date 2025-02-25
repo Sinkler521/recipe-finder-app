@@ -29,7 +29,7 @@ export default function Results() {
           <div
             key={result.id}
             className="bg-gray-900 rounded-lg shadow-md p-4 flex items-center cursor-pointer hover:bg-gray-700 transition"
-            onClick={() => router.push(`/recipes/${result.id}`)}
+            onClick={() => router.push(`/recepies/${result.id}`)}
           >
             <img
               src={result.image}

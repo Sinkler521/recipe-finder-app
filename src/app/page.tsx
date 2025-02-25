@@ -51,7 +51,6 @@ export default function Home() {
 
     try {
       const responseLink = `https://api.spoonacular.com/recipes/complexSearch?query=${titleValue}&cuisine=${selectedCuisine}&maxReadyTime=${maxPreparationTime}&apiKey=${APIKEY}`;
-      console.log(responseLink, 'responseLink');
       const response = await axios.get(responseLink);
       if (response.status === 200) {
         const result = response.data;
