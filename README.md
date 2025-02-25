@@ -18,7 +18,7 @@ yarn
 Create .env.local file in a root directory and define api key for proper promise work
 you can do it here: https://spoonacular.com/food-api/docs#Authentication
 ```bash
-SPOONACULAR_API_KEY=YOUR-API-KEY-HERE
+NEXT_PUBLIC_SPOONACULAR_API_KEY=YOUR-API-KEY-HERE
 ```
 
 ```bash
